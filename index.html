@@ -858,7 +858,7 @@
     </button>
 
     <div class="nav-label" style="margin-top:12px;">Pengurusan</div>
-    <button class="nav-item" onclick="showPage('page-setup', this)">
+    <button class="nav-item" onclick="checkAdminThenSetup(this)">
       <span class="icon">⚙️</span> Tetapan Sistem
     </button>
   </nav>
@@ -877,7 +877,7 @@
       <p id="page-sub">Rekod kehadiran murid mengikut waktu dan mata pelajaran</p>
     </div>
     <div class="topbar-right">
-      <div class="sync-badge offline" id="sync-badge" onclick="showPage('page-setup', document.querySelectorAll('.nav-item')[2])" title="Klik untuk tetapan Firebase Cloud">🟡 Mod Tempatan</div>
+      <div class="sync-badge offline" id="sync-badge" onclick="checkAdminThenSetup()" title="Status Sambungan Cloud">🟡 Mod Tempatan</div>
       <div class="avatar">S</div>
     </div>
   </div>
@@ -1148,23 +1148,9 @@
 
       </div>
 
-      <!-- Firebase Cloud Sync -->
-      <div class="card">
-        <div class="card-title"><div class="icon-wrap">🔥</div> Sambungan Cloud (Firebase Percuma — Multi-Cikgu)</div>
-        <p style="font-size:0.84rem; color:var(--slate-600); margin-bottom:14px; line-height:1.5;">
-          Sambungkan ke <strong>Firebase Realtime Database</strong> supaya semua cikgu yang buka link Netlify berkongsi senarai murid &amp; rekod kehadiran yang sama secara <em>real-time</em>.
-        </p>
-        <div class="form-group" style="margin-bottom:12px;">
-          <label>Tampal Firebase Config (atau Database URL)</label>
-          <textarea id="firebase-config-input" rows="5" style="width:100%; padding:10px 12px; border:1.5px solid var(--slate-200); border-radius:var(--radius-sm); font-family:monospace; font-size:0.8rem; background:var(--slate-50);" placeholder='Contoh:&#10;{&#10;  apiKey: "AIzaSy...",&#10;  databaseURL: "https://nama-projek-default-rtdb.asia-southeast1.firebasedatabase.app",&#10;  projectId: "nama-projek"&#10;}'></textarea>
-        </div>
-        <div class="btn-row">
-          <button class="btn btn-primary btn-sm" onclick="saveFirebaseConfig()">🔗 Simpan &amp; Sambung</button>
-          <button class="btn btn-ghost btn-sm" onclick="pushLocalToCloud()">☁️ Hantar Data Tempatan ke Cloud</button>
-          <button class="btn btn-danger btn-sm" onclick="disconnectFirebase()">🔌 Putuskan Sambungan</button>
-        </div>
-        <div id="firebase-status-text" style="margin-top:10px; font-size:0.8rem; color:var(--slate-500);"></div>
-      </div>
+      <!-- Firebase status hidden textarea (untuk fungsi disconnect dll) -->
+      <textarea id="firebase-config-input" style="display:none;"></textarea>
+      <div id="firebase-status-text" style="display:none;"></div>
 
       <!-- Data mgmt -->
       <div class="card">
@@ -1173,6 +1159,7 @@
           <button class="btn btn-ghost" onclick="backupData()">📤 Backup Data</button>
           <button class="btn btn-ghost" onclick="restoreData()">📥 Restore Data</button>
           <button class="btn btn-danger" onclick="padamSemuaRekod()">🗑️ Padam Semua Rekod</button>
+          <button class="btn btn-ghost" style="margin-left:auto; color:var(--red);" onclick="adminLogout()">🔒 Log Keluar Admin</button>
         </div>
       </div>
     </div>
@@ -1196,6 +1183,30 @@
     <div class="btn-row" style="margin-top:14px;">
       <button class="btn btn-primary" onclick="doImportMurid()">✅ Import</button>
       <button class="btn btn-ghost" onclick="closeImportModal()">Batal</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN LOGIN MODAL -->
+<div class="modal-overlay" id="admin-modal">
+  <div class="modal" style="max-width:380px;">
+    <div style="text-align:center; margin-bottom:16px;">
+      <div style="width:48px; height:48px; background:#eff6ff; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:1.5rem; margin-bottom:10px;">🔐</div>
+      <h3 style="font-size:1.1rem; color:var(--slate-800);">Akses Pentadbir (Admin)</h3>
+      <p style="font-size:0.8rem; color:var(--slate-500); margin-bottom:0;">Sila log masuk untuk mengakses Tetapan Sistem.</p>
+    </div>
+    <div style="margin-bottom:12px;">
+      <label style="display:block; font-size:0.75rem; font-weight:700; color:var(--slate-600); margin-bottom:5px; text-transform:uppercase;">ID Pengguna</label>
+      <input type="text" id="admin-username" placeholder="Masukkan username" style="width:100%; padding:10px 12px; border:1.5px solid var(--slate-200); border-radius:var(--radius-sm); font-size:0.88rem; outline:none;" autocomplete="off" />
+    </div>
+    <div style="margin-bottom:18px;">
+      <label style="display:block; font-size:0.75rem; font-weight:700; color:var(--slate-600); margin-bottom:5px; text-transform:uppercase;">Kata Laluan</label>
+      <input type="password" id="admin-password" placeholder="Masukkan kata laluan" style="width:100%; padding:10px 12px; border:1.5px solid var(--slate-200); border-radius:var(--radius-sm); font-size:0.88rem; outline:none;" />
+      <div id="admin-err-msg" style="color:var(--red); font-size:0.78rem; font-weight:600; margin-top:6px; display:none;">❌ Username atau kata laluan tidak sah!</div>
+    </div>
+    <div class="btn-row" style="justify-content:stretch;">
+      <button class="btn btn-primary" style="flex:1;" onclick="doAdminLogin()">Log Masuk</button>
+      <button class="btn btn-ghost" onclick="closeAdminModal()">Batal</button>
     </div>
   </div>
 </div>
@@ -1404,6 +1415,63 @@ function updateClock() {
 setInterval(updateClock, 1000); updateClock();
 
 // ═══════════════════════════════════════════
+//  ADMIN ACCESS PROTECTION
+// ═══════════════════════════════════════════
+const ADMIN_CREDENTIALS = {
+  user: 'admin_smkgs',
+  pass: 'SmkGS@2026#Hadir!'
+};
+
+let isAdminLoggedIn = false;
+
+function checkAdminThenSetup(navEl) {
+  if (isAdminLoggedIn) {
+    const el = navEl || document.querySelectorAll('.nav-item')[2];
+    showPage('page-setup', el);
+    return;
+  }
+  openAdminModal();
+}
+
+function openAdminModal() {
+  const m = document.getElementById('admin-modal');
+  if (!m) return;
+  document.getElementById('admin-username').value = '';
+  document.getElementById('admin-password').value = '';
+  document.getElementById('admin-err-msg').style.display = 'none';
+  m.classList.add('open');
+  setTimeout(() => document.getElementById('admin-username')?.focus(), 100);
+}
+
+function closeAdminModal() {
+  const m = document.getElementById('admin-modal');
+  if (m) m.classList.remove('open');
+}
+
+function doAdminLogin() {
+  const u = (document.getElementById('admin-username')?.value || '').trim();
+  const p = (document.getElementById('admin-password')?.value || '').trim();
+  const errEl = document.getElementById('admin-err-msg');
+
+  if (u === ADMIN_CREDENTIALS.user && p === ADMIN_CREDENTIALS.pass) {
+    isAdminLoggedIn = true;
+    closeAdminModal();
+    const setupNav = document.querySelectorAll('.nav-item')[2];
+    showPage('page-setup', setupNav);
+    toast('Selamat kembali, Pentadbir! 🛡️', '✅');
+  } else {
+    if (errEl) errEl.style.display = 'block';
+  }
+}
+
+function adminLogout() {
+  isAdminLoggedIn = false;
+  const ambilNav = document.querySelectorAll('.nav-item')[0];
+  showPage('page-ambil', ambilNav);
+  toast('Log keluar admin berjaya.', 'ℹ️');
+}
+
+// ═══════════════════════════════════════════
 //  NAV
 // ═══════════════════════════════════════════
 const PAGE_META = {
@@ -1413,6 +1481,10 @@ const PAGE_META = {
 };
 
 function showPage(id, el) {
+  if (id === 'page-setup' && !isAdminLoggedIn) {
+    checkAdminThenSetup(el);
+    return;
+  }
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById(id).classList.add('active');
@@ -2154,6 +2226,15 @@ function cetakKehadiran() { window.print(); }
 // Close modal on backdrop click
 document.getElementById('import-modal').addEventListener('click', function(e) {
   if (e.target===this) closeImportModal();
+});
+document.getElementById('admin-modal').addEventListener('click', function(e) {
+  if (e.target===this) closeAdminModal();
+});
+['admin-username', 'admin-password'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('keydown', e => {
+    if (e.key === 'Enter') doAdminLogin();
+  });
 });
 
 // Init Firebase Cloud Sync if configured
