@@ -42,13 +42,16 @@
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    /* ───── HIDE NETLIFY BADGE / DRAWER ───── */
+    /* ───── HIDE NETLIFY BADGE / DRAWER / HUD ───── */
+    #nl-badge-frame,
+    #nl-hud-frame,
+    iframe[title*="Netlify"],
+    iframe[src*="netlify"],
     [data-netlify-drawer],
     [data-netlify-deploy-preview-drawer],
     #netlify-badge,
     .netlify-badge,
     netlify-drawer,
-    iframe[src*="netlify"],
     div[class*="netlify-drawer"],
     div[class*="feedback-drawer"],
     div[id*="netlify"] {
@@ -56,6 +59,12 @@
       visibility: hidden !important;
       opacity: 0 !important;
       pointer-events: none !important;
+      width: 0 !important;
+      height: 0 !important;
+      z-index: -99999 !important;
+      position: absolute !important;
+      left: -9999px !important;
+      top: -9999px !important;
     }
 
     body {
@@ -2348,6 +2357,21 @@ document.getElementById('admin-modal').addEventListener('click', function(e) {
 
 // Init Firebase Cloud Sync if configured
 initFirebaseFromStorage();
+
+// Auto-remove Netlify injected HUD badge frame
+(function killNetlifyBadge() {
+  function removeFrames() {
+    const ids = ['nl-badge-frame', 'nl-hud-frame'];
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.remove();
+    });
+    document.querySelectorAll('iframe[title*="Netlify"], script[src*="netlify/scripts/hud"]').forEach(el => el.remove());
+  }
+  removeFrames();
+  const obs = new MutationObserver(removeFrames);
+  obs.observe(document.documentElement, { childList: true, subtree: true });
+})();
 </script>
 </body>
 </html>
