@@ -42,6 +42,22 @@
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    /* ───── HIDE NETLIFY BADGE / DRAWER ───── */
+    [data-netlify-drawer],
+    [data-netlify-deploy-preview-drawer],
+    #netlify-badge,
+    .netlify-badge,
+    netlify-drawer,
+    iframe[src*="netlify"],
+    div[class*="netlify-drawer"],
+    div[class*="feedback-drawer"],
+    div[id*="netlify"] {
+      display: none !important;
+      visibility: hidden !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
+
     body {
       font-family: 'Plus Jakarta Sans', 'Segoe UI', sans-serif;
       background: var(--slate-100);
